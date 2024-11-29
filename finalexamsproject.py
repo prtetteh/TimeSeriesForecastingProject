@@ -1,4 +1,4 @@
-# Import required libraries
+import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -42,10 +42,10 @@ for name, df in dataframes.items():
     dataframes[name] = df.fillna(method='ffill')
 
 # Data Overview
-print("Combined DataFrame Shape:", combined_df.shape)
+st.write("Combined DataFrame Shape:", combined_df.shape)
 for name, df in dataframes.items():
-    print(f"DataFrame: {name}, Shape: {df.shape}")
-    print(df.dtypes)
+    st.write(f"DataFrame: {name}, Shape: {df.shape}")
+    st.write(df.dtypes)
 
 # Visualize individual time series
 for name, df in dataframes.items():
@@ -58,7 +58,7 @@ for name, df in dataframes.items():
     plt.xticks(rotation=45)
     plt.legend()
     plt.tight_layout()
-    plt.show()
+    st.pyplot(plt)
 
 # Correlation Analysis
 price_data = [df['mp_price'].reset_index(drop=True) for df in dataframes.values()]
@@ -70,7 +70,7 @@ correlation_matrix = price_df.corr()
 plt.figure(figsize=(10, 8))
 sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt=".2f")
 plt.title('Correlation Matrix of Goods Prices')
-plt.show()
+st.pyplot(plt)
 
 # Moving Average for Beans (dry)
 df_beans = dataframes['Beans (dry).csv']
@@ -86,7 +86,7 @@ for window in window_sizes:
     plt.xlabel("Date")
     plt.ylabel("Price")
     plt.legend()
-    plt.show()
+    st.pyplot(plt)
 
 # ARIMA Forecast
 arima_model = pm.auto_arima(beans_prices, seasonal=False, trace=True, error_action='ignore', suppress_warnings=True, stepwise=True)
@@ -117,4 +117,4 @@ plt.ylabel('Price')
 plt.title('Beans Price Forecasts (ARIMA, Prophet)')
 plt.legend()
 plt.grid(True)
-plt.show()
+st.pyplot(plt)
