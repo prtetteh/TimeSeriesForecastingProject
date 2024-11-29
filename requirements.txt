@@ -2,6 +2,6 @@ streamlit
 pandas
 matplotlib
 seaborn
-numpy
-statsmodels
 scikit-learn
+statsmodels
+prophet
