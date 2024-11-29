@@ -1,11 +1,7 @@
 pandas
 numpy
-matplotlib.pyplot
+matplotlib
 seaborn
-from statsmodels.tsa.arima.model
-ARIMA
-from statsmodels.tsa.holtwinters 
-SimpleExpSmoothing
-from prophet
-Prophet
-pmdarima as pm
+statsmodels
+prophet
+pmdarima
