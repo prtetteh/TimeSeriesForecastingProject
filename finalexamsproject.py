@@ -2,99 +2,115 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import numpy as np
-from statsmodels.tsa.holtwinters import SimpleExpSmoothing
 from sklearn.linear_model import LinearRegression
+from statsmodels.tsa.holtwinters import SimpleExpSmoothing
+from prophet import Prophet
 
-# Streamlit app title and markdown header
-st.title("Time Series Analysis and Forecasting App")
+# Title of the App
+st.title("Time Series Analysis and Forecasting")
+
+# Markdown Description
 st.markdown("""
-This app explores a time series dataset and provides various analysis and forecasting functionalities.
-Upload your CSV file containing time series data to get started.
+### Introduction
+This app performs time series analysis and forecasting on various goods' pricing data.
+You can view data, visualize trends, handle missing values, and forecast future prices using different methods.
 """)
 
-# File upload section
-uploaded_file = st.file_uploader("Upload CSV File", type="csv")
+# Sidebar Navigation
+st.sidebar.title("Navigation")
+section = st.sidebar.radio("Select Section", ["Data Loading", "Data Analysis", "Missing Values", "Visualizations", "Forecasting"])
 
-# Function to parse the date column (assuming 'mp_year' and 'mp_month' columns)
-def parse_date(df):
-    df['date'] = pd.to_datetime(df['mp_year'].astype(str) + '-' + df['mp_month'].astype(str) + '-01')
-    return df
+# Load Data
+@st.cache
+def load_data():
+    # Replace with your actual data loading process
+    # For now, we simulate data as an example
+    data = pd.DataFrame({
+        'mp_year': [2020, 2020, 2021],
+        'mp_month': [1, 2, 1],
+        'mp_price': [100, 110, 120],
+    })
+    data['date'] = pd.to_datetime(data['mp_year'].astype(str) + '-' + data['mp_month'].astype(str) + '-01')
+    data.set_index('date', inplace=True)
+    return data
 
-# Function to verify date range continuity
-def verify_date_range(df):
-    if not isinstance(df.index, pd.DatetimeIndex):
-        return False, "Error: Index is not a DateTimeIndex."
+data = load_data()
 
-    start_date = df.index.min()
-    end_date = df.index.max()
-    date_range = pd.date_range(start=start_date, end=end_date, freq='MS')  # Monthly start frequency
+if section == "Data Loading":
+    st.header("Data Loading")
+    st.markdown("The data consists of pricing information for different goods over time.")
+    st.dataframe(data)
 
-    is_continuous = df.index.equals(date_range)
+elif section == "Data Analysis":
+    st.header("Data Analysis")
+    st.markdown("### Data Overview")
+    st.write("Shape of the DataFrame:", data.shape)
+    st.write("Data Types:")
+    st.write(data.dtypes)
 
-    description = (
-        f"Date Range: {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}\n"
-        f"Continuous: {is_continuous}"
-    )
+    st.markdown("### Summary Statistics")
+    st.write(data.describe())
 
-    if not is_continuous:
-        missing_dates = date_range.difference(df.index)
-        description += f"\nMissing Dates: {missing_dates.tolist()}"
-
-    return is_continuous, description
-
-# Data processing and analysis logic
-if uploaded_file is not None:
-    # Read the uploaded CSV file
-    df = pd.read_csv(uploaded_file)
-
-    # Check if 'mp_year' and 'mp_month' columns exist for date parsing
-    if 'mp_year' in df.columns and 'mp_month' in df.columns:
-        df = parse_date(df)
-        df.set_index('date', inplace=True)  # Set 'date' as the index
-    else:
-        st.warning("Date parsing columns ('mp_year', 'mp_month') not found. Data assumed to have a DatetimeIndex.")
-
-    # Display basic data information
-    st.header("Data Overview")
-    st.write("Shape:", df.shape)
-    st.write("Column names and data types:", df.dtypes)
-
-    # Verify date range continuity
-    is_continuous, description = verify_date_range(df)
-    st.write("Date Range:", description)
-
-    # Handle missing values section
+elif section == "Missing Values":
     st.header("Missing Values")
+    st.markdown("### Handling Missing Data")
+    st.write("Missing values before filling:")
+    st.write(data.isnull().sum())
 
-    # Option 1: Fill missing values with NaN
-    df_with_nan = df.copy()
-    df_with_nan = df_with_nan.fillna(value=pd.NA)
+    # Forward fill as an example
+    data = data.ffill()
 
-    # Option 2: Interpolate missing values (e.g., forward fill)
-    df_ffill = df.copy()
-    df_ffill = df_ffill.ffill()  # Fill missing values using forward fill
+    st.write("Missing values after forward filling:")
+    st.write(data.isnull().sum())
 
-    # Allow user to choose between options
-    selected_missing_value_handling = st.selectbox(
-        "Missing Value Handling Method",
-        options=["Fill with NaN", "Forward Fill (ffill)"]
-    )
+elif section == "Visualizations":
+    st.header("Visualizations")
+    st.markdown("### Time Series Plot")
+    sns.set_style("whitegrid")
+    plt.figure(figsize=(10, 5))
+    plt.plot(data.index, data['mp_price'], label='Price')
+    plt.xlabel("Date")
+    plt.ylabel("Price")
+    plt.title("Time Series of Prices")
+    plt.legend()
+    st.pyplot(plt)
 
-    if selected_missing_value_handling == "Fill with NaN":
-        df_to_use = df_with_nan
-    else:
-        df_to_use = df_ffill
+elif section == "Forecasting":
+    st.header("Forecasting")
+    st.markdown("### Linear Regression Forecasting")
+    last_12_months = data['mp_price'][-12:]
+    X = range(len(last_12_months))
+    y = last_12_months.values
+    model = LinearRegression()
+    model.fit(pd.DataFrame(X), y)
+    future_X = pd.DataFrame(range(len(last_12_months), len(last_12_months) + 6))
+    forecast = model.predict(future_X)
 
-    # Display missing values after handling
-    st.write("Missing values after handling:", df_to_use.isnull().sum())
+    # Plot Linear Regression Forecast
+    plt.figure(figsize=(10, 5))
+    plt.plot(last_12_months.index, last_12_months, label='Last 12 Months')
+    future_dates = pd.date_range(start=last_12_months.index[-1], periods=7, freq='M')[1:]
+    plt.plot(future_dates, forecast, label='Forecast')
+    plt.xlabel("Date")
+    plt.ylabel("Price")
+    plt.legend()
+    st.pyplot(plt)
 
-    # Descriptive statistics section
-    st.header("Descriptive Statistics")
-    st.write(df_to_use.describe(include='all'))
+    st.markdown("### Simple Exponential Smoothing Forecasting")
+    ses_model = SimpleExpSmoothing(data['mp_price']).fit(smoothing_level=0.2, optimized=False)
+    ses_forecast = ses_model.forecast(6)
+    future_dates = pd.date_range(start=data.index[-1], periods=7, freq='M')[1:]
+    plt.figure(figsize=(10, 5))
+    plt.plot(data.index, data['mp_price'], label='Actual Prices')
+    plt.plot(future_dates, ses_forecast, label='SES Forecast')
+    plt.legend()
+    st.pyplot(plt)
 
-    # Time series visualizations section
-    st.header("Time Series Visualizations")
-
-    # Select a good for time series plot
-    good_for_plot = st
+    st.markdown("### Prophet Forecasting")
+    prophet_data = data.reset_index().rename(columns={'date': 'ds', 'mp_price': 'y'})
+    prophet_model = Prophet()
+    prophet_model.fit(prophet_data)
+    future = prophet_model.make_future_dataframe(periods=6, freq='M')
+    prophet_forecast = prophet_model.predict(future)
+    prophet_model.plot(prophet_forecast)
+    st.pyplot(plt)
